@@ -1,7 +1,7 @@
 import torch
 torch.backends.cuda.matmul.allow_tf32 = True
 import random
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, LlamaTokenizer
 from datasets import load_dataset
 import os
 import time
@@ -58,14 +58,18 @@ def model_init(params):
         use_weighted_talk_head=True,
     )
     print("Loaded model")
-    tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
+    tokenizer = LlamaTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
     tokenizer.padding_side = "right"
     tokenizer.pad_token_id = tokenizer.eos_token_id
     special_tokens_to_add = []
-    if model.use_start_thought_token:
-        special_tokens_to_add.append("<|startthought|>")
-    if model.use_end_thought_token:
-        special_tokens_to_add.append("<|endthought|>")
+    special_tokens_to_add.append("<|startthought|>")
+    special_tokens_to_add.append("<|endthought|>")
+    # setattr(model, use_end_thought_token, True)
+    # setattr(model, use_start_thought_token, True)
+    # if model.use_start_thought_token:
+    #     special_tokens_to_add.append("<|startthought|>")
+    # if model.use_end_thought_token:
+    #     special_tokens_to_add.append("<|endthought|>")
     if special_tokens_to_add:
         tokenizer.add_special_tokens({"additional_special_tokens": special_tokens_to_add})
         model.resize_token_embeddings(len(tokenizer))

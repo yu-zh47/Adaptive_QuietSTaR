@@ -1,15 +1,22 @@
 import torch
 import random
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, LlamaTokenizer
+#from mistral_common.tokens.tokenizers.mistral import MistralTokenizer
 
-initial_tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
+#
+token = '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'
+# changed to Mistral-7B-Instruct-v0.1
+initial_tokenizer = LlamaTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.1", token=token)
+# 
 initial_tokenizer.padding_side = "right"
 initial_tokenizer.pad_token_id = initial_tokenizer.eos_token_id
 eval_answer_marker="\nA:"
 
 def preprocess_function(examples):
     dataset_transform = lambda xs: xs["text"]
-    all_tokenized = [initial_tokenizer.encode(t, return_tensors="pt") for t in dataset_transform(examples)]
+    # changed
+    all_tokenized = [initial_tokenizer.encode(t, return_tensors="pt", padding=True) for t in dataset_transform(examples)]
+    # changed
     new_tokenized = [{"input_ids": t} for t in all_tokenized]
     for i, t in enumerate(new_tokenized):
         new_tokenized[i]["input_ids"] = truncate_or_pad(t['input_ids'], initial_tokenizer.pad_token_id)
