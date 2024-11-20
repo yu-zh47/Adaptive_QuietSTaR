@@ -1,25 +1,32 @@
 import torch
 torch.backends.cuda.matmul.allow_tf32 = True
 import random
-from transformers import AutoTokenizer, AutoModelForCausalLM, TextGenerationPipeline, AutoConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM, TextGenerationPipeline, AutoConfig, LlamaTokenizer
 from accelerate import infer_auto_device_map, init_empty_weights, dispatch_model
 from datasets import load_dataset
+# changed
+#from huggingface_hub import huggingface_custom_callback
+#
 from torch.nn import CrossEntropyLoss
 from transformers import TrainingArguments, Trainer
 import os
 import time
 import wandb
-from huggingface_custom_callback import EarlyStoppingCallback
+# changed
+#from huggingface_custom_callback import EarlyStoppingCallback
+#
 from eval_helpers import preprocess_eval_function_gsm, preprocess_eval_function_csqa, preprocess_function, compute_metrics, truncate_or_pad
 random_seed = 42
 torch.manual_seed(random_seed)
 random.seed(random_seed)
 
 # MAIN SETUP
-root_prefix = "YOUR_CACHE_PATH_HERE"
+root_prefix = ""
 wandb_cache_dir = root_prefix + "cache/quietstar/wandb_cache"
 dataset_name = 'open-web-math/open-web-math'
-# dataset_name = 'c4'
+# changed
+#dataset_name = 'c4'
+#
 project_name = "quiet-star"
 os.environ["WANDB_PROJECT"] = project_name + "-" + dataset_name.split("/")[-1]
 os.environ["WANDB_CACHE_DIR"] = wandb_cache_dir
@@ -70,7 +77,7 @@ def model_init(params):
         use_weighted_talk_head=True,
     )
     print("Loaded model")
-    tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
+    tokenizer = LlamaTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
     tokenizer.padding_side = "right"
     tokenizer.pad_token_id = tokenizer.eos_token_id
 
@@ -107,8 +114,11 @@ def model_init(params):
 dataset = load_dataset(
     dataset_name,
     "en" if "c4" in dataset_name else "default",
+    # changed
     split=f"train[:{n_examples}]",
-    ignore_verifications=True,
+    #split = "train",
+    ignore_verification=True,
+    # 
     num_proc=16,
     cache_dir=root_prefix + "cache/datasets/",
 )

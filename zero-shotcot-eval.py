@@ -62,13 +62,10 @@ def model_init(params):
     tokenizer.padding_side = "right"
     tokenizer.pad_token_id = tokenizer.eos_token_id
     special_tokens_to_add = []
-    special_tokens_to_add.append("<|startthought|>")
-    special_tokens_to_add.append("<|endthought|>")
-    # print(model)
-    # if model.use_start_thought_token:
-    #     special_tokens_to_add.append("<|startthought|>")
-    # if model.use_end_thought_token:
-    #     special_tokens_to_add.append("<|endthought|>")
+    if model.use_start_thought_token:
+        special_tokens_to_add.append("<|startthought|>")
+    if model.use_end_thought_token:
+        special_tokens_to_add.append("<|endthought|>")
     if special_tokens_to_add:
         tokenizer.add_special_tokens({"additional_special_tokens": special_tokens_to_add})
         model.resize_token_embeddings(len(tokenizer))
