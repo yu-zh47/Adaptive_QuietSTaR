@@ -141,6 +141,7 @@ training_args = TrainingArguments(
     optim="adamw_torch_fused" if torch.cuda.is_available() else "adamw_torch",
     per_device_train_batch_size=batch_size,
     per_device_eval_batch_size=batch_size,
+    deepspeed="scripts/zero2.json",
     gradient_accumulation_steps=global_gradient_accumulation_steps,
     max_grad_norm=1.0,
     max_steps=100000,
