@@ -63,7 +63,8 @@ def model_init(params):
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-        device_map='auto',
+        device_map='cuda',
+        use_cache=False,
         cache_dir=root_prefix + "cache",
         max_thoughts=n_ahead + n_ahead_talk + 1,
         merged_talk_heads=merged_talk_heads,
@@ -117,7 +118,7 @@ dataset = load_dataset(
     # changed
     split=f"train[:{n_examples}]",
     #split = "train",
-    ignore_verification=True,
+    # ignore_verification=True,
     # 
     num_proc=16,
     cache_dir=root_prefix + "cache/datasets/",
@@ -133,11 +134,14 @@ eval_datasets = {
 }
 
 batch_size = full_batch_size // n_passes_global
+batch_size = 1
 global_gradient_accumulation_steps = full_batch_size // batch_size
 run_id = int(time.time())
 training_args = TrainingArguments(
     output_dir=root_prefix + f"cache/quietstar/{run_id}",
     learning_rate=1e-6,
+    bf16=True,
+    gradient_checkpointing=True,
     optim="adamw_torch_fused" if torch.cuda.is_available() else "adamw_torch",
     per_device_train_batch_size=batch_size,
     per_device_eval_batch_size=batch_size,
@@ -154,7 +158,8 @@ training_args = TrainingArguments(
     eval_steps=eval_and_logging_steps,
     evaluation_strategy="steps",
     save_steps=save_steps,
-    run_name=f"n={n_ahead_global}_nt={n_ahead_talk_global}_np={n_passes_global}",
+    # run_name=f"n={n_ahead_global}_nt={n_ahead_talk_global}_np={n_passes_global}",
+    run_name=f"n={n_ahead_global}_nt={n_ahead_talk_global}_np={n_passes_global}_bs={batch_size}",
 )
 
 trainer = Trainer(

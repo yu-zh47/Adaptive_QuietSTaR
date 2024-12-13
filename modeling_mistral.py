@@ -1638,6 +1638,9 @@ class MistralForCausalLM(MistralPreTrainedModel):
                     with torch.set_grad_enabled(not self.train_only_thinking_embedding):
                         inputs_embeds = self.model.embed_tokens(input_ids)
             
+            print(f"attention_mask is None 0: {attention_mask is None}")
+            if attention_mask is not None:
+                print(f"attention_mask shape 0: {attention_mask.shape}")
             if self.n_ahead != 1 or self.n_ahead_talk != 1 or self.comparison_mode:
                 if attention_mask is None:
                     base_attention_mask = torch.triu(torch.ones(seq_len, seq_len), diagonal=0).to(input_ids.device)
@@ -1661,6 +1664,11 @@ class MistralForCausalLM(MistralPreTrainedModel):
                         sliding_window=self.config.sliding_window,
                     )
 
+            print(f"use_cache: {use_cache}")
+            print(f"past_key_values is None: {past_key_values is None}")
+            print(f"attention_mask is None 1: {attention_mask is None}")
+            if attention_mask is not None:
+                print(f"attention_mask shape 1: {attention_mask.shape}")
             outputs = self.model(
                 # input_ids=input_ids,
                 attention_mask=attention_mask,
@@ -1875,9 +1883,10 @@ class MistralForCausalLM(MistralPreTrainedModel):
                         inputs_embeds = inputs_embeds.view(probabilities.size(0), probabilities.size(1), -1).to(self.model.embed_tokens.weight.dtype)
                 inputs_embeds = inputs_embeds.view(probabilities.size(0), probabilities.size(1), -1).to(self.model.embed_tokens.weight.dtype)
 
+                print(f"attention_mask before shape: {attention_mask.shape}")
                 if len(attention_mask.shape) == 2:
                     breakpoint()
-                else:
+                elif not (self.model.gradient_checkpointing and self.model.training):
                     original_attention = attention_mask[..., :attention_mask.shape[-2]]
                     if self.use_upper_triangular:
                         new_attention = original_attention
@@ -1898,6 +1907,7 @@ class MistralForCausalLM(MistralPreTrainedModel):
                         new_attention[new_attention == 0] = attention_mask.min()
                         new_attention[new_attention == 1] = attention_mask.max()
                     attention_mask = torch.cat([attention_mask, new_attention], dim=-1)
+                print(f"attention_mask after shape: {attention_mask.shape}")
                 past_key_values = outputs.past_key_values
                 position_ids = position_ids + 1
 
