@@ -304,6 +304,7 @@ if dist.size() > 1:
             'pass_at_k_accuracy': pass_k_acc,
             'num_questions': total
         }
+        print(f"Majority Vote Accuracy: {majority_acc} Pass@k Accuracy: {pass_k_acc}")
         
         json_filename = f"{result['vote_folder']}/results.json"
         with open(json_filename, 'w') as f:
@@ -328,6 +329,7 @@ else:
         'pass_at_k_accuracy': pass_k_acc,
         'num_questions': total
     }
+    print(f"Majority Vote Accuracy: {majority_acc} Pass@k Accuracy: {pass_k_acc}")
     
     json_filename = f"{result['vote_folder']}/results.json"
     with open(json_filename, 'w') as f:
