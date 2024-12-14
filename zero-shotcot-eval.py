@@ -13,9 +13,11 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--batch_idx", type=int, default=0)
 parser.add_argument("--baseline", action="store_true")
-parser.add_argument("--device_batch_size", type=int, default=8)
+parser.add_argument("--device_batch_size", type=int, default=8) # changed
 parser.add_argument("--max_idx", type=int, default=128)
+### n_votes, previously used 8
 parser.add_argument("--n_votes", type=int, default=8)
+###
 parser.add_argument("--temp", type=float, default=0.9)
 parser.add_argument("--start_final_answer_idx", type=int, default=384)
 parser.add_argument("--answer_length", type=int, default=12)
@@ -23,7 +25,9 @@ parser.add_argument("--root_prefix", type=str, default="YOUR_ROOT_HERE")
 parser.add_argument("--checkpoint", type=str, default="ezelikman/quietstar-8-ahead")
 parser.add_argument("--final_answer_text", type=str, default="\nTherefore, the answer (arabic numerals) is")
 parser.add_argument("--zero_shot_cot_prompt", type=str, default="\nA: Let's think step by step.")
-parser.add_argument("--n_ahead", type=int, default=8)
+### change for thought token length
+parser.add_argument("--n_ahead", type=int, default=14)
+###
 args = parser.parse_args()
 
 def model_init(params):
@@ -57,15 +61,20 @@ def model_init(params):
         use_complex_talk_head=True,
         use_weighted_talk_head=True,
     )
+    print(model.max_thoughts)
     print("Loaded model")
     tokenizer = LlamaTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
     tokenizer.padding_side = "right"
     tokenizer.pad_token_id = tokenizer.eos_token_id
     special_tokens_to_add = []
-    if model.use_start_thought_token:
-        special_tokens_to_add.append("<|startthought|>")
-    if model.use_end_thought_token:
-        special_tokens_to_add.append("<|endthought|>")
+    special_tokens_to_add.append("<|startthought|>")
+    special_tokens_to_add.append("<|endthought|>")
+    # setattr(model, use_end_thought_token, True)
+    # setattr(model, use_start_thought_token, True)
+    # if model.use_start_thought_token:
+    #     special_tokens_to_add.append("<|startthought|>")
+    # if model.use_end_thought_token:
+    #     special_tokens_to_add.append("<|endthought|>")
     if special_tokens_to_add:
         tokenizer.add_special_tokens({"additional_special_tokens": special_tokens_to_add})
         model.resize_token_embeddings(len(tokenizer))
@@ -110,14 +119,18 @@ cot_dataset_gsm = load_dataset("gsm8k", "main", split="test", ignore_verificatio
 model = model_init(None)
 
 start_question = args.device_batch_size * args.batch_idx
-end_question = args.device_batch_size * (args.batch_idx + 1)
+### change for question numbers
+end_question = args.device_batch_size * (args.batch_idx + 5) #changed, original 1
+### 
 # Iterate over the questions for the current device
+# changed
 batch_size = 1
 for batch_start in tqdm(range(start_question, min(args.max_idx, end_question), batch_size)):
     last_save_folder = f"answers/eval_{'baseline' if args.baseline else 'ft'}_{args.n_ahead if not args.baseline else 1}_{args.temp}_{args.n_votes}"
-    if os.path.exists(last_save_folder + f"/{batch_start}.txt"):
-        print(f"Skipping {batch_start}")
-        continue
+    #changed
+    # if os.path.exists(last_save_folder + f"/{batch_start}.txt"):
+    #     print(f"Skipping {batch_start}")
+    #     continue
     extracted_answers = []
     for vote_idx in range(1, args.n_votes + 1):
         folder_name = f"answers/eval_{'baseline' if args.baseline else 'ft'}_{args.n_ahead if not args.baseline else 1}_{args.temp}_{vote_idx}"
@@ -141,6 +154,10 @@ for batch_start in tqdm(range(start_question, min(args.max_idx, end_question), b
                     input_ids[~finished_generating],
                     attention_mask=attention_mask[~finished_generating]
                 )['logits']
+                #changed
+                if torch.isnan(new_ids).any():
+                    print(new_ids)
+                #print(new_ids.shape)
                 # Mask out the start and end thought tokens so we don't accidentally sample them
                 new_ids[:, :, model.tokenizer.vocab_size:] = -float("inf")
                 for list_idx, answer_idx in enumerate((~finished_generating).nonzero(as_tuple=True)[0]):
